@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1080723461432",
+    "project_id": "metacolhub",
+    "storage_bucket": "metacolhub.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1080723461432:android:047645921e62f7d814ddcd",
+        "android_client_info": {
+          "package_name": "com.example.meta_col_hub"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCGP1F_ZT0AibKMaH3PlTiWls438OgfUis"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
