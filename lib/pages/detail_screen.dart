@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:csv/csv.dart';
 import 'edit_collocation.dart';
 
 class DetailScreen extends StatefulWidget {
@@ -9,6 +8,10 @@ class DetailScreen extends StatefulWidget {
   final List<List<dynamic>> allData;
   final bool isLoggedIn;
   final String filePath;
+  final Map<String, List<List<dynamic>>> uploadedFiles;
+  final List<List<dynamic>> csvData;
+  final List<String> searchResults;
+  final Function(String) searchAcrossFiles;
 
   const DetailScreen({
     Key? key,
@@ -17,6 +20,10 @@ class DetailScreen extends StatefulWidget {
     required this.allData,
     required this.isLoggedIn,
     required this.filePath,
+    required this.uploadedFiles,
+    required this.csvData,
+    required this.searchResults,
+    required this.searchAcrossFiles,
   }) : super(key: key);
 
   @override
@@ -25,12 +32,188 @@ class DetailScreen extends StatefulWidget {
 
 class _DetailScreenState extends State<DetailScreen> {
   List<List<dynamic>> filteredCollocations = [];
+  Map<int, int> filteredToFileIndex = {};
+  List<List<dynamic>> localAllData = [];
   bool isFilterApplied = false;
 
   @override
   void initState() {
     super.initState();
     filteredCollocations = widget.collocations;
+    localAllData = List.from(widget.allData);
+    _loadCollocations();
+  }
+
+  Future<void> _loadCollocations() async {
+    final collocations = await _getCollocationsForBase(widget.baseTerm);
+
+    setState(() {
+      filteredCollocations = collocations;
+
+      filteredToFileIndex = {
+        for (int i = 0; i < collocations.length; i++)
+          i: localAllData.indexWhere((row) =>
+              row.isNotEmpty &&
+              row[0].toString().trim() ==
+                  collocations[i][0].toString().trim() &&
+              row[1].toString().trim() ==
+                  collocations[i][1].toString().trim() &&
+              (row.length > 2 &&
+                  row[2].toString().trim() ==
+                      collocations[i][2].toString().trim()))
+      };
+
+      print('Base Term: ${widget.baseTerm}');
+      print('Collocations for Base: $collocations');
+      print('FilteredToFileIndex after setting: $filteredToFileIndex');
+    });
+  }
+
+  Future<List<List<dynamic>>> _getCollocationsForBase(String base) async {
+    final List<List<dynamic>> collocations = [];
+    try {
+      widget.uploadedFiles.forEach((filePath, fileData) {
+        fileData.forEach((row) {
+          if (row.isNotEmpty && row[0].toString().trim() == base.trim()) {
+            collocations.add(row);
+          }
+        });
+      });
+    } catch (e) {
+      print('Error processing collocations: $e');
+    }
+
+    print('Filtered collocations for base "$base": $collocations');
+    return collocations;
+  }
+
+  Future<void> _editCollocation(int index, String newBase,
+      String newCollocation, String newExample) async {
+    try {
+      if (index < 0 || index >= filteredCollocations.length) {
+        print('Invalid index for editing.');
+        return;
+      }
+
+      final oldRow = filteredCollocations[index];
+
+      final resolvedFilePath = widget.uploadedFiles.keys.firstWhere(
+        (filePath) => widget.uploadedFiles[filePath]!.any((row) =>
+            row.isNotEmpty &&
+            row[0].toString().trim() == oldRow[0].toString().trim() &&
+            row[1].toString().trim() == oldRow[1].toString().trim() &&
+            (row.length > 2 &&
+                row[2].toString().trim() == oldRow[2].toString().trim())),
+        orElse: () {
+          print('Could not find file for row: $oldRow');
+          throw Exception('File not found for row.');
+        },
+      );
+
+      print('Editing row in file: $resolvedFilePath');
+
+      final file = File(resolvedFilePath);
+      final List<String> lines = await file.readAsLines();
+
+      for (int i = 0; i < lines.length; i++) {
+        final parts = lines[i].split(';');
+        if (parts.isNotEmpty &&
+            parts[0].trim() == oldRow[0].toString().trim() &&
+            parts[1].trim() == oldRow[1].toString().trim() &&
+            (parts.length > 2 &&
+                parts[2].trim() == oldRow[2].toString().trim())) {
+          lines[i] = '$newBase;$newCollocation;$newExample';
+          break;
+        }
+      }
+
+      await file.writeAsString(lines.join('\n') + '\n');
+
+      print('Row edited successfully in file: $resolvedFilePath');
+
+      widget.uploadedFiles[resolvedFilePath] =
+          lines.map((line) => line.split(';')).toList();
+
+      setState(() {
+        filteredCollocations[index] = [newBase, newCollocation, newExample];
+
+        widget.allData.removeWhere((row) =>
+            row.isNotEmpty &&
+            row[0].toString().trim() == oldRow[0].toString().trim() &&
+            row[1].toString().trim() == oldRow[1].toString().trim() &&
+            (row.length > 2 &&
+                row[2].toString().trim() == oldRow[2].toString().trim()));
+
+        widget.allData.add([newBase, newCollocation, newExample]);
+      });
+
+      print('Collocation updated successfully.');
+    } catch (e) {
+      print('Error editing collocation: $e');
+    }
+  }
+
+  Future<void> _deleteCollocation(int index) async {
+    try {
+      if (index < 0 || index >= filteredCollocations.length) {
+        print('Invalid index for deletion.');
+        return;
+      }
+
+      final collocationRow = filteredCollocations[index];
+
+      final resolvedFilePath = widget.uploadedFiles.keys.firstWhere(
+        (key) => widget.uploadedFiles[key]!.any((row) =>
+            row.isNotEmpty &&
+            row[0].toString().trim() == collocationRow[0].toString().trim() &&
+            row[1].toString().trim() == collocationRow[1].toString().trim() &&
+            (row.length > 2 &&
+                row[2].toString().trim() ==
+                    collocationRow[2].toString().trim())),
+        orElse: () {
+          print('Could not resolve file path for row: $collocationRow');
+          throw Exception('File not found for row.');
+        },
+      );
+
+      print('Deleting from file: $resolvedFilePath');
+
+      final file = File(resolvedFilePath);
+      final List<String> lines = await file.readAsLines();
+
+      final updatedLines = lines.where((line) {
+        final parts = line.split(';');
+        return !(parts.isNotEmpty &&
+            parts[0].trim() == collocationRow[0].toString().trim() &&
+            parts[1].trim() == collocationRow[1].toString().trim() &&
+            (parts.length > 2 &&
+                parts[2].trim() == collocationRow[2].toString().trim()));
+      }).toList();
+
+      await file.writeAsString(updatedLines.join('\n') + '\n');
+
+      print('Row deleted successfully from file: $resolvedFilePath');
+
+      setState(() {
+        filteredCollocations.removeAt(index);
+        widget.allData.removeWhere(
+          (row) =>
+              row.isNotEmpty &&
+              row[0].toString().trim() == collocationRow[0].toString().trim() &&
+              row[1].toString().trim() == collocationRow[1].toString().trim() &&
+              (row.length > 2 &&
+                  row[2].toString().trim() ==
+                      collocationRow[2].toString().trim()),
+        );
+
+        widget.uploadedFiles[resolvedFilePath] =
+            updatedLines.map((line) => line.split(';')).toList();
+      });
+
+      print('Collocation deleted successfully.');
+    } catch (e) {
+      print('Error deleting collocation: $e');
+    }
   }
 
   void _filterCollocations(String letter) {
@@ -39,7 +222,7 @@ class _DetailScreenState extends State<DetailScreen> {
         if (row.length > 1) {
           final collocation = row[1].toString().trim();
           return collocation.toLowerCase().startsWith(letter.toLowerCase()) &&
-              row[0].toString().trim().split(';').first == widget.baseTerm;
+              row[0].toString().trim() == widget.baseTerm;
         }
         return false;
       }).toList();
@@ -52,55 +235,6 @@ class _DetailScreenState extends State<DetailScreen> {
       filteredCollocations = widget.collocations;
       isFilterApplied = false;
     });
-  }
-
-  Future<void> _saveCSV() async {
-    String csv =
-        const ListToCsvConverter(fieldDelimiter: ';').convert(widget.allData);
-    await File(widget.filePath).writeAsString(csv);
-  }
-
-  void _deleteCollocation(int index) {
-    setState(() {
-      final collocationRow = filteredCollocations[index];
-      widget.allData.remove(collocationRow);
-      filteredCollocations.removeAt(index);
-      _saveCSV(); 
-    });
-  }
-
-  Future<void> _editCollocation(int index) async {
-    final collocationRow = filteredCollocations[index];
-    String base = widget.baseTerm;
-    String collocation =
-        collocationRow.length > 1 ? collocationRow[1].toString().trim() : '';
-    String example =
-        collocationRow.length > 2 ? collocationRow[2].toString().trim() : '';
-
-    final updatedCollocation = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => EditCollocationScreen(
-          base: base,
-          collocation: collocation,
-          example: example,
-        ),
-      ),
-    );
-
-    if (updatedCollocation != null) {
-      setState(() {
-        filteredCollocations[index] = [
-          updatedCollocation['base'],
-          updatedCollocation['collocation'],
-          updatedCollocation['example']
-        ];
-
-        int mainDataIndex = widget.allData.indexOf(collocationRow);
-        widget.allData[mainDataIndex] = filteredCollocations[index];
-        _saveCSV(); 
-      });
-    }
   }
 
   @override
@@ -134,18 +268,18 @@ class _DetailScreenState extends State<DetailScreen> {
             if (isFilterApplied)
               ElevatedButton(
                 onPressed: _removeFilter,
-                child: const Text('Remove Filter'),
                 style: ElevatedButton.styleFrom(
                   foregroundColor: Colors.red,
                   backgroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(25),
-                    side: BorderSide(
+                    side: const BorderSide(
                       color: Colors.lightBlue,
                       width: 2,
                     ),
                   ),
                 ),
+                child: const Text('Remove Filter'),
               ),
             const SizedBox(height: 5),
             Expanded(
@@ -182,7 +316,7 @@ class _DetailScreenState extends State<DetailScreen> {
                             fontSize: 14,
                           ),
                           softWrap: true,
-                          overflow: TextOverflow.visible, 
+                          overflow: TextOverflow.visible,
                         ),
                       ),
                       trailing: widget.isLoggedIn
@@ -190,44 +324,116 @@ class _DetailScreenState extends State<DetailScreen> {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 IconButton(
-                                  icon: Icon(Icons.edit),
-                                  onPressed: () => _editCollocation(index),
+                                  icon: const Icon(Icons.edit),
+                                  onPressed: () async {
+                                    final result = await Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            EditCollocationScreen(
+                                          base: widget.baseTerm,
+                                          collocation: collocation,
+                                          example: example,
+                                        ),
+                                      ),
+                                    );
+
+                                    if (result != null) {
+                                      _editCollocation(
+                                          index,
+                                          result['base'],
+                                          result['collocation'],
+                                          result['example']);
+                                    }
+                                  },
                                 ),
                                 IconButton(
-                                  icon: Icon(Icons.delete, color: Colors.red),
+                                  icon: const Icon(Icons.delete,
+                                      color: Colors.red),
                                   onPressed: () async {
                                     final confirm = await showDialog<bool>(
                                       context: context,
                                       builder: (context) {
                                         return AlertDialog(
-                                          title: Text('Confirm Delete'),
-                                          content: Text(
-                                              'Are you sure you want to delete this collocation?'),
-                                          actions: [
-                                            TextButton(
-                                              onPressed: () =>
-                                                  Navigator.of(context)
-                                                      .pop(false),
-                                              child: Text(
-                                                'Cancel',
-                                                style: TextStyle(
-                                                    color: Colors.lightBlue),
-                                              ),
+                                          backgroundColor: Colors.lightBlue[50],
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(25),
+                                          ),
+                                          title: const Text(
+                                            "Confirm Delete",
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 18,
                                             ),
-                                            TextButton(
-                                              onPressed: () =>
-                                                  Navigator.of(context).pop(
-                                                      true),
-                                              child: Text(
-                                                'Delete',
-                                                style: TextStyle(
-                                                    color: Colors.lightBlue),
-                                              ),
+                                          ),
+                                          content: const Text(
+                                            "Are you sure you want to delete this collocation?",
+                                            style: TextStyle(fontSize: 16),
+                                          ),
+                                          actions: [
+                                            Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              children: [
+                                                TextButton(
+                                                  onPressed: () =>
+                                                      Navigator.pop(context),
+                                                  style: TextButton.styleFrom(
+                                                    foregroundColor:
+                                                        Colors.black,
+                                                    padding: const EdgeInsets
+                                                        .symmetric(
+                                                        horizontal: 16,
+                                                        vertical: 12),
+                                                    shape:
+                                                        RoundedRectangleBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              25),
+                                                      side: const BorderSide(
+                                                          color: Colors.grey),
+                                                    ),
+                                                  ),
+                                                  child: const Text(
+                                                    "Cancel",
+                                                    style:
+                                                        TextStyle(fontSize: 16),
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 15),
+                                                TextButton(
+                                                  onPressed: () =>
+                                                      Navigator.of(context)
+                                                          .pop(true),
+                                                  style: TextButton.styleFrom(
+                                                    backgroundColor: Colors.red
+                                                        .withOpacity(0.8),
+                                                    padding: const EdgeInsets
+                                                        .symmetric(
+                                                        horizontal: 16,
+                                                        vertical: 12),
+                                                    shape:
+                                                        RoundedRectangleBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              25),
+                                                    ),
+                                                  ),
+                                                  child: const Text(
+                                                    "Remove",
+                                                    style: TextStyle(
+                                                        color: Colors.white,
+                                                        fontSize: 16),
+                                                  ),
+                                                ),
+                                              ],
                                             ),
                                           ],
                                         );
                                       },
                                     );
+
                                     if (confirm == true) {
                                       _deleteCollocation(index);
                                     }
@@ -236,9 +442,9 @@ class _DetailScreenState extends State<DetailScreen> {
                               ],
                             )
                           : null,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(25)),
                     ),
-                    
                   );
                 },
               ),

@@ -17,12 +17,12 @@ class _WidgetTreeState extends State<WidgetTree> {
       stream: Auth().authStateChanges,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(child: CircularProgressIndicator());
+          return const Center(child: CircularProgressIndicator());
         }
         if (snapshot.hasData) {
-          return HomePage(isLoggedIn: true);
+          return const HomePage(isLoggedIn: true);
         } else {
-          return HomePage(isLoggedIn: false);
+          return const HomePage(isLoggedIn: false);
         }
       },
     );

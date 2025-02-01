@@ -19,7 +19,7 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> signInWithEmailAndPassword() async {
     try {
       await Auth().signInWithEmailAndPassword(
-        email: _controllerEmail.text, 
+        email: _controllerEmail.text,
         password: _controllerPassword.text,
       );
       Navigator.of(context).pop();
@@ -33,9 +33,7 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> createUserWithEmailAndPassword() async {
     try {
       await Auth().createUserWithEmailAndPassword(
-        email: _controllerEmail.text, 
-        password: _controllerPassword.text
-      );
+          email: _controllerEmail.text, password: _controllerPassword.text);
       Navigator.of(context).pop();
     } on FirebaseAuthException catch (e) {
       setState(() {
@@ -43,9 +41,6 @@ class _LoginPageState extends State<LoginPage> {
       });
     }
   }
-
-
-
 
   Widget _title() {
     return const Text('Firebase Auth');
@@ -55,7 +50,7 @@ class _LoginPageState extends State<LoginPage> {
     String title,
     TextEditingController controller,
     bool obscureText,
-  )  {
+  ) {
     return TextField(
       controller: controller,
       obscureText: obscureText,
@@ -72,30 +67,26 @@ class _LoginPageState extends State<LoginPage> {
 
   Widget _submitButton() {
     return ElevatedButton(
-      onPressed: isLogin ? signInWithEmailAndPassword: createUserWithEmailAndPassword, 
-      child: Text(isLogin ? 'Login' : 'Register')
-    );
+        onPressed: isLogin
+            ? signInWithEmailAndPassword
+            : createUserWithEmailAndPassword,
+        child: Text(isLogin ? 'Login' : 'Register'));
   }
-
 
   Widget _loginOrRegisterButton() {
     return TextButton(
-      onPressed: () {
-        setState(() {
-          isLogin = !isLogin;
-        });
-      }, 
-      child: Text(isLogin ? 'Register instead' : 'Login instead'),
-      style: TextButton.styleFrom(
-                          foregroundColor: Colors.black,
-                          backgroundColor:
-                              Colors.lightBlue[200], 
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(25),
-                              
-                            )
-                          )
-    );
+        onPressed: () {
+          setState(() {
+            isLogin = !isLogin;
+          });
+        },
+        style: TextButton.styleFrom(
+            foregroundColor: Colors.black,
+            backgroundColor: Colors.lightBlue[200],
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(25),
+            )),
+        child: Text(isLogin ? 'Register instead' : 'Login instead'));
   }
 
   @override
@@ -113,11 +104,13 @@ class _LoginPageState extends State<LoginPage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             _entryField('Email', _controllerEmail, false),
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
             _entryField('Password', _controllerPassword, true),
             _errorMessage(),
             _submitButton(),
-            SizedBox(height: 10,),
+            const SizedBox(
+              height: 10,
+            ),
             _loginOrRegisterButton(),
           ],
         ),

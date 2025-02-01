@@ -6,42 +6,45 @@ class EditCollocationScreen extends StatelessWidget {
   final String example;
 
   const EditCollocationScreen({
-    Key? key,
+    super.key,
     required this.base,
     required this.collocation,
     required this.example,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
-    final TextEditingController baseController = TextEditingController(text: base);
-    final TextEditingController collocationController = TextEditingController(text: collocation);
-    final TextEditingController exampleController = TextEditingController(text: example);
+    final TextEditingController baseController =
+        TextEditingController(text: base);
+    final TextEditingController collocationController =
+        TextEditingController(text: collocation);
+    final TextEditingController exampleController =
+        TextEditingController(text: example);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Edit Collocation'),
+        title: const Text('Edit Collocation'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            SizedBox(height: 50),
+            const SizedBox(height: 50),
             TextField(
               controller: baseController,
-              decoration: InputDecoration(labelText: 'Base'),
+              decoration: const InputDecoration(labelText: 'Base'),
               cursorColor: Colors.lightBlue,
             ),
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
             TextField(
               controller: collocationController,
-              decoration: InputDecoration(labelText: 'Collocation'),
+              decoration: const InputDecoration(labelText: 'Collocation'),
               cursorColor: Colors.lightBlue,
             ),
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
             TextField(
               controller: exampleController,
-              decoration: InputDecoration(labelText: '"Example"'),
+              decoration: const InputDecoration(labelText: '"Example"'),
               cursorColor: Colors.lightBlue,
             ),
             const SizedBox(height: 20),
@@ -49,35 +52,39 @@ class EditCollocationScreen extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 ElevatedButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                  child: Text('Cancel'),
-                  style: ElevatedButton.styleFrom(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                    style: ElevatedButton.styleFrom(
                         foregroundColor: Colors.black,
-                        backgroundColor:
-                            Colors.white,
+                        backgroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(25),
-                            side: BorderSide(
+                            side: const BorderSide(
                               color: Colors.grey,
                               width: 2,
-                            )
-                          )
-                        )
-                ),
-                SizedBox(width: 20),
+                            ))),
+                    child: const Text('Cancel')),
+                const SizedBox(width: 20),
                 ElevatedButton(
                   onPressed: () {
+                    if (baseController.text.isEmpty ||
+                        collocationController.text.isEmpty ||
+                        exampleController.text.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('All fields must be filled!')),
+                      );
+                      return;
+                    }
+
                     Navigator.of(context).pop({
                       'base': baseController.text,
                       'collocation': collocationController.text,
                       'example': exampleController.text,
                     });
-                    Navigator.of(context).popUntil((route) => route.isFirst);
                   },
-                  child: Text('Save'),
-                  
+                  child: const Text('Save'),
                 ),
               ],
             ),

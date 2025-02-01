@@ -2,7 +2,7 @@
   "project_info": {
     "project_number": "1080723461432",
     "project_id": "metacolhub",
-    "storage_bucket": "metacolhub.appspot.com"
+    "storage_bucket": "metacolhub.firebasestorage.app"
   },
   "client": [
     {
