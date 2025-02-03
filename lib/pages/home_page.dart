@@ -271,12 +271,13 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea(
-        child: Column(
+      body: Column(
+          
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            
             Container(
-              padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
               decoration: const BoxDecoration(
                 color: Color.fromARGB(255, 204, 239, 255),
                 borderRadius: BorderRadius.only(
@@ -285,7 +286,9 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
               child: Column(
+                
                 children: [
+                  const SizedBox(height: 40),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -539,7 +542,6 @@ class _HomePageState extends State<HomePage> {
             ),
           ],
         ),
-      ),
-    );
+      );
   }
 }

@@ -43,7 +43,7 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Widget _title() {
-    return const Text('Firebase Auth');
+    return const Text('Registration');
   }
 
   Widget _entryField(
@@ -89,30 +89,39 @@ class _LoginPageState extends State<LoginPage> {
         child: Text(isLogin ? 'Register instead' : 'Login instead'));
   }
 
+  Widget _logoWidget() {
+    return SizedBox(
+      width: MediaQuery.of(context).size.width * 0.6, // 60% of screen width
+      child: Image.asset(
+        'assets/logo.png',
+        fit: BoxFit.contain, // Ensures the image scales correctly
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: _title(),
-      ),
-      body: Container(
-        height: double.infinity,
-        width: double.infinity,
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            _entryField('Email', _controllerEmail, false),
-            const SizedBox(height: 10),
-            _entryField('Password', _controllerPassword, true),
-            _errorMessage(),
-            _submitButton(),
-            const SizedBox(
-              height: 10,
-            ),
-            _loginOrRegisterButton(),
-          ],
+      resizeToAvoidBottomInset: true,
+      appBar: AppBar(title: _title()),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              _logoWidget(),
+              const SizedBox(height: 20), // Space below logo
+              _entryField('Email', _controllerEmail, false),
+              const SizedBox(height: 10),
+              _entryField('Password', _controllerPassword, true),
+              _errorMessage(),
+              _submitButton(),
+              const SizedBox(height: 10),
+              _loginOrRegisterButton(),
+            ],
+          ),
         ),
       ),
     );
